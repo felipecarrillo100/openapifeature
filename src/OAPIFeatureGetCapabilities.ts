@@ -77,10 +77,13 @@ export class OAPIFeatureGetCapabilities {
         (response) => {
           if (response.status === 200) {
             response.json().then((jsonObject) => {
-              const linkToData = jsonObject.links.find(
+              let linkToData = jsonObject.links.find(
                 (link: OAPIFeatureServiceLinkType) =>
                   link.rel === 'data' && link.type === 'application/json'
               );
+              if (!linkToData)  {
+                linkToData = jsonObject.links.find((link) => link.rel === 'data' );
+              }
               const linkToApi = jsonObject.links.find(
                 (link: OAPIFeatureServiceLinkType) => {
                   return (
