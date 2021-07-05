@@ -93,7 +93,8 @@ export class OAPIFeatureStore implements Store, Evented {
           response.text().then((content) => {
             let contentType = response.headers.get('Content-Type');
             const contentCrs = response.headers.get('content-crs');
-            const contentLength = Number(response.headers.get('content-length'));
+            const contentLengthStr = response.headers.get('Content-Length');
+            const contentLength = Number(contentLengthStr);
             contentType = contentType ? contentType : 'text/plain';
             content = content
               .split('http://www.opengis.net/def/crs/OGC/1.3/CRS84')
@@ -154,7 +155,8 @@ export class OAPIFeatureStore implements Store, Evented {
           response.text().then((content) => {
             let contentType = response.headers.get('Content-Type');
             const contentCrs = response.headers.get('content-crs');
-            const contentLength = Number(response.headers.get('content-length'));
+            const contentLengthStr = response.headers.get('Content-Length');
+            const contentLength = Number(contentLengthStr);
             contentType = contentType ? contentType : 'text/plain';
             content = content
               .split('srsName="http://www.opengis.net/def/crs/OGC/1.3/CRS84"')
