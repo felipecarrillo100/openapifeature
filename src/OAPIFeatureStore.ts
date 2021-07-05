@@ -102,7 +102,7 @@ export class OAPIFeatureStore implements Store, Evented {
             const codecOptions: OAPICodecDecodeOptions = {
               content, contentType, contentCrs, contentLength
             };
-            const cursor = this.codec.decode(options);
+            const cursor = this.codec.decode(codecOptions);
             if (cursor.hasNext()) {
               const feaure = cursor.next();
               resolve(feaure);
