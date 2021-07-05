@@ -3,7 +3,7 @@ import { Cursor } from '@luciad/ria/model/Cursor';
 import { Feature } from '@luciad/ria/model/feature/Feature';
 import { Evented, Handle } from '@luciad/ria/util/Evented';
 import { Bounds } from '@luciad/ria/shape/Bounds';
-import { Codec } from '@luciad/ria/model/codec/Codec';
+import {Codec, CodecDecodeOptions} from '@luciad/ria/model/codec/Codec';
 import { EventedSupport } from '@luciad/ria/util/EventedSupport';
 import { createBounds } from '@luciad/ria/shape/ShapeFactory';
 import { CoordinateReference } from '@luciad/ria/reference/CoordinateReference';
@@ -17,6 +17,11 @@ interface WFS3FeatureStoreConstructorOptions {
   tmp_reference: string;
   extent: { spatial: { bbox: any[] } };
   reference: CoordinateReference;
+}
+
+interface OAPICodecDecodeOptions extends CodecDecodeOptions {
+  contentCrs?: string;
+  contentLength?: number;
 }
 
 export class OAPIFeatureStore implements Store, Evented {
@@ -87,11 +92,16 @@ export class OAPIFeatureStore implements Store, Evented {
         if (response.status === 200) {
           response.text().then((content) => {
             let contentType = response.headers.get('Content-Type');
+            const contentCrs = response.headers.get('content-crs');
+            const contentLength = Number(response.headers.get('content-length'));
             contentType = contentType ? contentType : 'text/plain';
             content = content
               .split('http://www.opengis.net/def/crs/OGC/1.3/CRS84')
               .join('urn:ogc:def:crs:OGC:1.3:CRS84');
-            const cursor = this.codec.decode({ content, contentType });
+            const codecOptions: OAPICodecDecodeOptions = {
+              content, contentType, contentCrs, contentLength
+            };
+            const cursor = this.codec.decode(options);
             if (cursor.hasNext()) {
               const feaure = cursor.next();
               resolve(feaure);
@@ -143,11 +153,16 @@ export class OAPIFeatureStore implements Store, Evented {
         if (response.status === 200) {
           response.text().then((content) => {
             let contentType = response.headers.get('Content-Type');
+            const contentCrs = response.headers.get('content-crs');
+            const contentLength = Number(response.headers.get('content-length'));
             contentType = contentType ? contentType : 'text/plain';
             content = content
               .split('srsName="http://www.opengis.net/def/crs/OGC/1.3/CRS84"')
               .join('srsName="urn:ogc:def:crs:OGC:1.3:CRS84"');
-            const cursor = this.codec.decode({ content, contentType });
+            const codecOptions: OAPICodecDecodeOptions = {
+              content, contentType, contentCrs, contentLength
+            };
+            const cursor = this.codec.decode(codecOptions);
             resolve(cursor);
           });
         }
@@ -197,4 +212,8 @@ export class OAPIFeatureStore implements Store, Evented {
     }
     return format;
   }
+}
+
+export {
+  OAPICodecDecodeOptions
 }
