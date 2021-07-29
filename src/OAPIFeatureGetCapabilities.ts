@@ -4,6 +4,7 @@ export interface OAPIFeatureCapabilitiesObject {
   version: string;
   service: string;
   info: any;
+  crs?: any[];
 }
 
 export interface OAPIFeatureCapabilitiesFeatureType {
@@ -16,6 +17,8 @@ export interface OAPIFeatureCapabilitiesFeatureType {
   keywords: string[];
   links: OAPIFeatureServiceLinkType[];
   extent: any;
+  crs?: any;
+  storageCrs?: any;
 }
 
 export interface OAPIFeatureServiceLinkType {
@@ -108,12 +111,16 @@ export class OAPIFeatureGetCapabilities {
                   const responseDataLink = responses[0];
                   const responseOpenApi =
                     responses.length >= 1 ? responses[1] : undefined;
+                  const crsArray = typeof responseDataLink.crs !== "undefined" ? { crs: responseDataLink.crs } : {};
                   const featureTypes = responseDataLink.collections.map(
                     (collection: any) => {
                       const name =
                         typeof collection.id !== 'undefined'
                           ? collection.id
                           : collection.name;
+                      const collectionCrsObject = {} as any;
+                      if (typeof collection.crs !== "undefined") collectionCrsObject.crs = collection.crs;
+                      if (typeof collection.storageCrs !== "undefined") collectionCrsObject.storageCrs = collection.storageCrs;
                       const layer: OAPIFeatureCapabilitiesFeatureType = {
                         description: collection.description,
                         id: name,
@@ -131,17 +138,19 @@ export class OAPIFeatureGetCapabilities {
                           )
                           .map((link: any) => link.type),
                         extent: collection.extent,
+                        ...collectionCrsObject
                       };
                       return layer;
                     }
                   );
-                  console.log(featureTypes);
+                  // console.log(featureTypes);
                   const o: OAPIFeatureCapabilitiesObject = {
                     name: '',
                     featureTypes: featureTypes,
                     version: responseOpenApi ? responseOpenApi.openapi : '',
                     service: '',
                     info: responseOpenApi ? responseOpenApi.info : {},
+                    ...crsArray
                   };
                   resolve(o);
                 });

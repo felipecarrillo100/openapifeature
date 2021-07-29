@@ -1,6 +1,6 @@
 {
   "name": "openapifeature",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "",
   "files": [
     "lib/"
@@ -22,6 +22,6 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@luciad/ria": ">2020.0"
+    "@luciad/ria": ">=2020.0"
   }
 }
