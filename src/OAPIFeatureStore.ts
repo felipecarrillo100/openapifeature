@@ -8,7 +8,7 @@ import { EventedSupport } from '@luciad/ria/util/EventedSupport';
 import { createBounds } from '@luciad/ria/shape/ShapeFactory';
 import { CoordinateReference } from '@luciad/ria/reference/CoordinateReference';
 
-interface WFS3FeatureStoreConstructorOptions {
+interface OAPIFeatureStoreConstructorOptions {
   dataUrl: string;
   dataFormat: string;
   outputFormat: string;
@@ -17,6 +17,42 @@ interface WFS3FeatureStoreConstructorOptions {
   tmp_reference: string;
   extent: { spatial: { bbox: any[] } };
   reference: CoordinateReference;
+}
+
+interface OAPIFeatureStoreQueryOptions {
+  f?:string;
+  limit?: number;
+  offset?: number;
+  bbox?: number[];
+  "bbox-crs"? : string;
+  datetime?: string;
+  filter?: string;
+  "filter-crs"?: string;
+  "filter-lang"?: string;
+  crs?: string | any;
+  skipGeometry?: boolean;
+  properties?: string[];
+  sortby?: string[];
+  ident?: string;
+  name?: string;
+  q?: string[];
+  maxAllowableOffset?: number;
+  level?: string;
+  sector?: string;
+  milCode?: string;
+  localType?: string;
+  upperLimitDesc?: number;
+  upperLimitValue?: number;
+  upperLimitUnit?: string;
+  upperLimitCode?: string;
+  lowerLimitDesc?: string;
+  lowerLimitValue?: number;
+  lowerLimitUnit?: string;
+  lowerLimitCode?: string;
+  onshore?:boolean;
+  exclusion?: boolean;
+  wkhrCode?: string;
+  wkhrRemark?: string;
 }
 
 interface OAPICodecDecodeOptions extends CodecDecodeOptions {
@@ -35,7 +71,7 @@ export class OAPIFeatureStore implements Store, Evented {
   private reference: CoordinateReference;
   private outputFormat: string;
 
-  constructor(options: WFS3FeatureStoreConstructorOptions) {
+  constructor(options: OAPIFeatureStoreConstructorOptions) {
     console.log(options);
     this.dataUrl = options.dataUrl;
     this.outputFormat = options.outputFormat;
@@ -69,7 +105,7 @@ export class OAPIFeatureStore implements Store, Evented {
   get(id: number | string, optionsInput?: any): Promise<Feature> {
     return new Promise((resolve) => {
       const options = optionsInput ? { ...optionsInput } : {};
-      options.query = options.query ? options.query : {};
+      options.query = (options.query ? options.query : {}) as OAPIFeatureStoreQueryOptions;
       options.query.f = options.query.f ? options.query.f : this.dataFormat;
       // Mod starta
       const itemsAccept =
@@ -81,9 +117,15 @@ export class OAPIFeatureStore implements Store, Evented {
       itemsAccept.push(this.outputFormat);
       const accept = itemsAccept.join(';');
       // Mod end
-      const request = options.query.f
-        ? this.baseUrl + id + '?f=' + options.query.f
-        : this.baseUrl + id;
+      let request = this.baseUrl + id;
+      const simpleQuery = [];
+      if (options.query.f) simpleQuery.push("f");
+      if (options.query.crs) simpleQuery.push("crs");
+      if (simpleQuery.length > 0) {
+        const queryString = simpleQuery.map( k => ""+k+"="+options.query[k]).join("&");
+        request += "?" + queryString;
+      }
+
       const headers = { ...this.requestHeaders, Accept: accept };
       fetch(request, {
         method: 'GET',
@@ -116,7 +158,7 @@ export class OAPIFeatureStore implements Store, Evented {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  query(receivedQuery?: any, options?: any): Cursor | Promise<Cursor> {
+  query(receivedQuery?: OAPIFeatureStoreQueryOptions, options?: any): Cursor | Promise<Cursor> {
     return new Promise((resolve) => {
       const query = receivedQuery ? { ...receivedQuery } : {};
       query.f = query.f ? query.f : this.dataFormat;
@@ -132,19 +174,19 @@ export class OAPIFeatureStore implements Store, Evented {
       itemsAccept.push(this.outputFormat);
       const accept = itemsAccept.join(';');
       // Mod end
-      let queryCharacter = '?';
-      if (query.f) {
-        request += queryCharacter + 'f=' + query.f;
-        queryCharacter = '&';
+
+      const allKeys = Object.keys(query);
+      if (allKeys.length>0) {
+        const filteredKeys = allKeys.filter(e => (typeof query[e] !== "undefined" && query[e] !== null));
+        const indexOfFormat = filteredKeys.indexOf("f");
+        if (indexOfFormat > -1) {
+          filteredKeys.splice(indexOfFormat, 1);
+          filteredKeys.unshift("f");
+        }
+        const queryString = filteredKeys.map( k => ""+k+"="+query[k]).join("&");
+        request += "?" + queryString;
       }
-      if (query.limit) {
-        request += queryCharacter + 'limit=' + query.limit;
-        queryCharacter = '&';
-      }
-      if (query.bbox) {
-        request += queryCharacter + 'bbox=' + query.bbox;
-        queryCharacter = '&';
-      }
+
       const headers = { ...this.requestHeaders, Accept: accept };
       // const headers = { ...this.requestHeaders };
       fetch(request, {
@@ -174,10 +216,10 @@ export class OAPIFeatureStore implements Store, Evented {
 
   spatialQuery(
     bounds?: Bounds,
-    receivedQuery?: any,
+    receivedQuery?: OAPIFeatureStoreQueryOptions,
     options?: any
   ): Promise<Cursor> | Cursor {
-    const query = receivedQuery ? { ...receivedQuery } : {};
+    const query = (receivedQuery ? { ...receivedQuery } : {}) as OAPIFeatureStoreQueryOptions;
     delete query.bbox;
     query.limit = query.limit ? query.limit : undefined;
     if (bounds) {
@@ -188,7 +230,7 @@ export class OAPIFeatureStore implements Store, Evented {
             bounds.y,
             bounds.x + bounds.width,
             bounds.y + bounds.height,
-          ].join(',');
+          ];
     }
     return this.query(query, options);
   }
