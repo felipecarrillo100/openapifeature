@@ -4,7 +4,7 @@ class OAPICrsTools {
      * @param uriOrName
      * @private
      */
-    private static getReferenceName(uriOrName: string) {
+    public static getReferenceName(uriOrName: string) {
         if (!uriOrName.startsWith('http')) {
             return uriOrName;
         }
