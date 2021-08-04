@@ -7,11 +7,14 @@ import {Codec, CodecDecodeOptions} from '@luciad/ria/model/codec/Codec';
 import { EventedSupport } from '@luciad/ria/util/EventedSupport';
 import { createBounds } from '@luciad/ria/shape/ShapeFactory';
 import { CoordinateReference } from '@luciad/ria/reference/CoordinateReference';
+import {getReference} from "@luciad/ria/reference/ReferenceProvider";
+import {createTransformation} from "@luciad/ria/transformation/TransformationFactory";
 
 interface OAPIFeatureStoreConstructorOptions {
   dataUrl: string;
   dataFormat: string;
   outputFormat: string;
+  useCrs84Bounds: boolean;
   codec: Codec;
   requestHeaders: { [key: string]: string };
   tmp_reference: string;
@@ -72,9 +75,11 @@ export class OAPIFeatureStore implements Store, Evented {
   private requestHeaders: { [key: string]: string };
   private reference: CoordinateReference;
   private outputFormat: string;
+  private useCrs84Bounds: boolean;
 
   constructor(options: OAPIFeatureStoreConstructorOptions) {
     console.log(options);
+    this.useCrs84Bounds = typeof options.useCrs84Bounds !== "undefined" ? options.useCrs84Bounds : false;
     this.dataUrl = options.dataUrl;
     this.outputFormat = options.outputFormat;
     this.baseUrl = OAPIFeatureStore.cleanUrl(this.dataUrl);
@@ -228,19 +233,39 @@ export class OAPIFeatureStore implements Store, Evented {
     delete query.bbox;
     query.limit = query.limit ? query.limit : undefined;
     if (bounds) {
-      query.bbox = query.bbox
-        ? query.bbox
-        : [
-            bounds.x,
-            bounds.y,
-            bounds.x + bounds.width,
-            bounds.y + bounds.height,
-          ];
-      if (this.customCrs) {
-        query["bbox-crs"] = this.customCrs;
+      if (this.useCrs84Bounds) {
+        const crs84Bounds = OAPIFeatureStore.getCRS84BoundingBox(bounds);
+        query.bbox = query.bbox
+            ? query.bbox
+            : [
+              crs84Bounds.x,
+              crs84Bounds.y,
+              crs84Bounds.x + crs84Bounds.width,
+              crs84Bounds.y + crs84Bounds.height,
+            ];
+      } else {
+        query.bbox = query.bbox
+            ? query.bbox
+            : [
+              bounds.x,
+              bounds.y,
+              bounds.x + bounds.width,
+              bounds.y + bounds.height,
+            ];
+        if (this.customCrs) {
+          query["bbox-crs"] = this.customCrs;
+        }
       }
     }
     return this.query(query, options);
+  }
+
+  private static getCRS84BoundingBox(shape: Bounds) {
+    const WGS84 = getReference("CRS:84");
+    const bounds = shape.bounds;
+    const toWgs84 = createTransformation(bounds.reference, WGS84);
+    const newBounds = toWgs84.transformBounds(bounds);
+    return newBounds;
   }
 
   private static cleanUrl(dataUrl: string) {
