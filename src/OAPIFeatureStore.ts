@@ -15,6 +15,7 @@ interface OAPIFeatureStoreConstructorOptions {
   codec: Codec;
   requestHeaders: { [key: string]: string };
   tmp_reference: string;
+  customCrs: string;
   extent: { spatial: { bbox: any[] } };
   reference: CoordinateReference;
 }
@@ -66,6 +67,7 @@ export class OAPIFeatureStore implements Store, Evented {
   private eventedSupport: EventedSupport;
   private baseUrl: string;
   private dataFormat: string | undefined;
+  private customCrs: string | undefined;
   private bounds: Bounds;
   private requestHeaders: { [key: string]: string };
   private reference: CoordinateReference;
@@ -77,6 +79,7 @@ export class OAPIFeatureStore implements Store, Evented {
     this.outputFormat = options.outputFormat;
     this.baseUrl = OAPIFeatureStore.cleanUrl(this.dataUrl);
     this.dataFormat = OAPIFeatureStore.dataFormatInQuery(this.dataUrl);
+    this.customCrs = options.customCrs;
     this.codec = options.codec;
     this.eventedSupport = new EventedSupport();
     this.requestHeaders = options.requestHeaders ? options.requestHeaders : {};
@@ -107,6 +110,7 @@ export class OAPIFeatureStore implements Store, Evented {
       const options = optionsInput ? { ...optionsInput } : {};
       options.query = (options.query ? options.query : {}) as OAPIFeatureStoreQueryOptions;
       options.query.f = options.query.f ? options.query.f : this.dataFormat;
+      options.query.crs = options.query.crs ? options.query.crs : this.customCrs;
       // Mod starta
       const itemsAccept =
         typeof this.requestHeaders.accept !== 'undefined'
@@ -162,6 +166,7 @@ export class OAPIFeatureStore implements Store, Evented {
     return new Promise((resolve) => {
       const query = receivedQuery ? { ...receivedQuery } : {};
       query.f = query.f ? query.f : this.dataFormat;
+      query.crs = query.crs ? query.crs : this.customCrs;
       query.limit = query.limit ? query.limit : undefined;
       let request = this.baseUrl;
       // Mod starta
