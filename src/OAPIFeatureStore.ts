@@ -236,6 +236,9 @@ export class OAPIFeatureStore implements Store, Evented {
             bounds.x + bounds.width,
             bounds.y + bounds.height,
           ];
+      if (this.customCrs) {
+        query["bbox-crs"] = this.customCrs;
+      }
     }
     return this.query(query, options);
   }
