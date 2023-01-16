@@ -5,6 +5,7 @@ export interface OAPIFeatureCapabilitiesObject {
   service: string;
   info: any;
   crs?: any[];
+  hostUrl: string;
 }
 
 export interface OAPIFeatureCapabilitiesFeatureType {
@@ -30,6 +31,10 @@ export interface OAPIFeatureServiceLinkType {
 
 export enum CollectionLinkType {
   Items = 'items',
+}
+
+interface FetchLinkContentOptions {
+  hostUrl: string;
 }
 
 // type ProxifierFunction = (s: string) => string;
@@ -67,8 +72,8 @@ export class OAPIFeatureGetCapabilities {
       : false;
   }
   public static fromURL(inputRequest: string, options: any) {
-    console.log(options);
     return new Promise<OAPIFeatureCapabilitiesObject>((resolve, reject) => {
+      const hostUrl = OAPIFeatureGetCapabilities.getHostURL(inputRequest);
       const MyProxy = OAPIFeatureGetCapabilities.Proxify({
         indexes: { getcapabilities: inputRequest },
         useProxy: OAPIFeatureGetCapabilities.hasProxy(),
@@ -98,12 +103,14 @@ export class OAPIFeatureGetCapabilities {
               const promiseArray = [];
               if (linkToData) {
                 const collectionsPromise = OAPIFeatureGetCapabilities.fetchLinkContentAsJSON(
-                  linkToData
+                  linkToData,
+                    {hostUrl}
                 );
                 promiseArray.push(collectionsPromise);
                 if (linkToApi) {
                   const apiPromise = OAPIFeatureGetCapabilities.fetchLinkContentAsJSON(
-                    linkToApi
+                    linkToApi,
+                      {hostUrl}
                   );
                   promiseArray.push(apiPromise);
                 }
@@ -150,7 +157,8 @@ export class OAPIFeatureGetCapabilities {
                     version: responseOpenApi ? responseOpenApi.openapi : '',
                     service: '',
                     info: responseOpenApi ? responseOpenApi.info : {},
-                    ...crsArray
+                    ...crsArray,
+                    hostUrl,
                   };
                   resolve(o);
                 });
@@ -175,15 +183,33 @@ export class OAPIFeatureGetCapabilities {
     console.log(options);
   }
 
-  private static promiseToLink(link: OAPIFeatureServiceLinkType) {
-    return OAPIFeatureGetCapabilities.fetchLinkContentAsJSON(link);
+  private static promiseToLink(link: OAPIFeatureServiceLinkType, options?: FetchLinkContentOptions) {
+    return OAPIFeatureGetCapabilities.fetchLinkContentAsJSON(link, options);
   }
 
-  private static fetchLinkContentAsJSON(link: OAPIFeatureServiceLinkType) {
+  private static getHostURL(fullUrl: string) {
+    const pathArray = fullUrl.split( '/' );
+    const protocol = pathArray[0];
+    const host = pathArray[2];
+    const url = protocol + '//' + host;
+    return url;
+  }
+
+  public static addHostURL(url: string, HostUrl?: string) {
+    const hostUrl = HostUrl ? HostUrl : "";
+    if (url.startsWith("http://") ||  url.startsWith("https://")) {
+      return url;
+    } else {
+      if (url.startsWith("/")) return hostUrl + url;
+    }
+    return hostUrl + "/" + url;
+  }
+
+  private static fetchLinkContentAsJSON(link: OAPIFeatureServiceLinkType, options?: FetchLinkContentOptions) {
     return new Promise((resolve) => {
       const MyProxy = OAPIFeatureGetCapabilities.Proxify({
         useProxy: OAPIFeatureGetCapabilities.hasProxy(),
-        indexes: { link: link.href },
+        indexes: { link: OAPIFeatureGetCapabilities.addHostURL(link.href, options?.hostUrl) },
       });
       fetch(MyProxy.urls.link, {
         method: 'GET',
@@ -193,11 +219,11 @@ export class OAPIFeatureGetCapabilities {
           if (result.status === 200) {
             result.json().then((json) => resolve(json));
           } else {
-            resolve();
+            resolve(undefined);
           }
         },
         () => {
-          resolve();
+          resolve(undefined);
         }
       );
     });
