@@ -12,6 +12,7 @@ import {createTransformation} from "@luciad/ria/transformation/TransformationFac
 
 interface OAPIFeatureStoreConstructorOptions {
   dataUrl: string;
+  featureUrl: string;
   dataFormat: string;
   outputFormat: string;
   useCrs84Bounds: boolean;
@@ -76,12 +77,17 @@ export class OAPIFeatureStore implements Store, Evented {
   private reference: CoordinateReference;
   private outputFormat: string;
   private useCrs84Bounds: boolean;
+  private featureUrl: string;
 
   constructor(options: OAPIFeatureStoreConstructorOptions) {
-    console.log(options);
+    // console.log(options);
     this.useCrs84Bounds = typeof options.useCrs84Bounds !== "undefined" ? options.useCrs84Bounds : false;
     this.dataUrl = options.dataUrl;
     this.outputFormat = options.outputFormat;
+    const predictedFeatureUrl =  this.dataUrl.replace(/\.[^/.]+$/, "");
+
+    this.featureUrl = options.featureUrl ? OAPIFeatureStore.cleanUrl(options.featureUrl) : OAPIFeatureStore.cleanUrl(predictedFeatureUrl);
+
     this.baseUrl = OAPIFeatureStore.cleanUrl(this.dataUrl);
     this.dataFormat = OAPIFeatureStore.dataFormatInQuery(this.dataUrl);
     this.customCrs = options.customCrs;
@@ -96,7 +102,7 @@ export class OAPIFeatureStore implements Store, Evented {
       options.extent.spatial.bbox.length > 0
     ) {
       const bbox = options.extent.spatial.bbox[0];
-      console.log(options.extent.spatial);
+      // console.log(options.extent.spatial);
       this.bounds = createBounds(this.reference, [
         bbox[0],
         bbox[2] - bbox[0],
@@ -126,7 +132,7 @@ export class OAPIFeatureStore implements Store, Evented {
       itemsAccept.push(this.outputFormat);
       const accept = itemsAccept.join(';');
       // Mod end
-      let request = this.baseUrl + id;
+      let request = this.featureUrl + id;
       const simpleQuery = [];
       if (options.query.f) simpleQuery.push("f");
       if (options.query.crs) simpleQuery.push("crs");

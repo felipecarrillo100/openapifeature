@@ -175,18 +175,6 @@ export class OAPIFeatureGetCapabilities {
     });
   }
 
-  public static getServiceOperation(
-    s: OAPIFeatureCapabilitiesObject,
-    options: any
-  ) {
-    console.log(s);
-    console.log(options);
-  }
-
-  private static promiseToLink(link: OAPIFeatureServiceLinkType, options?: FetchLinkContentOptions) {
-    return OAPIFeatureGetCapabilities.fetchLinkContentAsJSON(link, options);
-  }
-
   private static getHostURL(fullUrl: string) {
     const pathArray = fullUrl.split( '/' );
     const protocol = pathArray[0];
