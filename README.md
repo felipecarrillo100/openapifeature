@@ -16,6 +16,15 @@ npm install
 npm run build
 ```
 
+## To test
+Some test have been added that run in nodejs. No browser test is available at the moment.
+To run the test make sure you are using nodejs > 18 as function fetch is required.
+```
+npm run test
+```
+Test use the sever-side implementation of OGC Open API Features at "https://demo.pygeoapi.io/master/"
+The server is reliable ans stable,  but take in t account that changes at the server may brake some tests.
+
 ## To use
 
 Simply import the NPM package in to your project

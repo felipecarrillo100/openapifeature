@@ -69,6 +69,11 @@
     "outDir": "./lib"
   },
   "include": [
-    "./src"
+    "./src/**/*"
+  ],
+  "exclude": [
+    "./node_modules",
+    "./src/**/*.test.ts",
+    "./babel.config.js"
   ]
 }

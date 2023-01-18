@@ -164,7 +164,7 @@ export class OAPIFeatureStore implements Store, Evented {
               const feaure = cursor.next();
               resolve(feaure);
             } else {
-              resolve();
+              resolve(null);
             }
           });
         }

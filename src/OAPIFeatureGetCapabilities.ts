@@ -35,6 +35,18 @@ export enum CollectionLinkType {
 
 interface FetchLinkContentOptions {
   hostUrl: string;
+  credentials?: boolean;
+  requestHeaders?: {
+    [headerName: string]: string;
+  } | null;
+}
+
+export interface OptionsOAPIFeatureGetCapabilitiesFromURL {
+  filterCollectionsByLinkType?: CollectionLinkType
+  credentials?: boolean;
+  requestHeaders?: {
+    [headerName: string]: string;
+  } | null;
 }
 
 // type ProxifierFunction = (s: string) => string;
@@ -62,29 +74,33 @@ export class OAPIFeatureGetCapabilities {
     if (typeof this.proxify === 'function') {
       return this.proxify(options);
     } else {
-      return { urls: options.indexes, headers: {} };
+      return { urls: options.indexes, headers: options.requestHeaders ? options.requestHeaders : {} };
     }
   }
 
   public static hasProxy() {
-    return typeof OAPIFeatureGetCapabilities.proxify === 'function'
-      ? true
-      : false;
+    return typeof OAPIFeatureGetCapabilities.proxify === 'function';
   }
-  public static fromURL(inputRequest: string, options: any) {
+  public static fromURL(inputRequest: string, options?: OptionsOAPIFeatureGetCapabilitiesFromURL) {
     return new Promise<OAPIFeatureCapabilitiesObject>((resolve, reject) => {
       const hostUrl = OAPIFeatureGetCapabilities.getHostURL(inputRequest);
       const MyProxy = OAPIFeatureGetCapabilities.Proxify({
         indexes: { getcapabilities: inputRequest },
         useProxy: OAPIFeatureGetCapabilities.hasProxy(),
+        requestHeaders: options.requestHeaders
       });
       fetch(MyProxy.urls.getcapabilities, {
         method: 'GET',
+        credentials: options.credentials ? "same-origin" : "omit",
         headers: MyProxy.headers,
       }).then(
         (response) => {
           if (response.status === 200) {
             response.json().then((jsonObject) => {
+              if (!jsonObject.links) {
+                reject("Invalid format: (property 'links' is missing)")
+                return;
+              }
               let linkToData = jsonObject.links.find(
                 (link: OAPIFeatureServiceLinkType) =>
                   link.rel === 'data' && link.type === 'application/json'
@@ -119,7 +135,7 @@ export class OAPIFeatureGetCapabilities {
                   const responseOpenApi =
                     responses.length >= 1 ? responses[1] : undefined;
                   const crsArray = typeof responseDataLink.crs !== "undefined" ? { crs: responseDataLink.crs } : {};
-                  const featureTypes = responseDataLink.collections.map(
+                  const featureTypes = responseDataLink.collections.filter(c=> options && options.filterCollectionsByLinkType ? OAPIFeatureGetCapabilities.filterCollectionLinks(c.links,options.filterCollectionsByLinkType).length>0 : true).map(
                     (collection: any) => {
                       const name =
                         typeof collection.id !== 'undefined'
@@ -162,25 +178,29 @@ export class OAPIFeatureGetCapabilities {
                   };
                   resolve(o);
                 });
+              } else {
+                reject("Invalid format: (property 'links' contains no links with rel=data");
               }
+            }, ()=>{
+              reject("Not JSON")
             });
           } else {
-            reject();
+            reject(response.status);
           }
         },
-        () => {
-          reject();
+        (err) => {
+          reject(err);
         }
       );
     });
   }
 
-  private static getHostURL(fullUrl: string) {
-    const pathArray = fullUrl.split( '/' );
-    const protocol = pathArray[0];
-    const host = pathArray[2];
-    const url = protocol + '//' + host;
-    return url;
+  protected static getHostURL(fullUrl: string) {
+    if (!fullUrl.startsWith("http")) return "";
+      const pathArray = fullUrl.split( '/' );
+      const protocol = pathArray[0];
+      const host = pathArray[2];
+      return protocol + '//' + host;
   }
 
   public static addHostURL(url: string, HostUrl?: string) {
@@ -196,11 +216,13 @@ export class OAPIFeatureGetCapabilities {
   private static fetchLinkContentAsJSON(link: OAPIFeatureServiceLinkType, options?: FetchLinkContentOptions) {
     return new Promise((resolve) => {
       const MyProxy = OAPIFeatureGetCapabilities.Proxify({
+        requestHeaders: options.requestHeaders,
         useProxy: OAPIFeatureGetCapabilities.hasProxy(),
         indexes: { link: OAPIFeatureGetCapabilities.addHostURL(link.href, options?.hostUrl) },
       });
       fetch(MyProxy.urls.link, {
         method: 'GET',
+        credentials: options.credentials ? "same-origin" : "omit",
         headers: MyProxy.headers,
       }).then(
         (result) => {
@@ -226,7 +248,6 @@ export class OAPIFeatureGetCapabilities {
         return links.filter(
           (link: any) => link.rel === 'items' || link.rel === 'item'
         );
-        break;
     }
   }
 
