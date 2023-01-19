@@ -18,7 +18,7 @@ npm run build
 
 ## To test
 Some test have been added that run in nodejs. No browser test is available at the moment.
-To run the test make sure you are using nodejs > 18 as function fetch is required.
+The fetch functionality is now provide by library "isomorphic-fetch"
 ```
 npm run test
 ```

@@ -1,4 +1,6 @@
 import {describe, expect, it} from '@jest/globals';
+import "isomorphic-fetch";
+
 import {CollectionLinkType, OAPIFeatureGetCapabilities} from "./OAPIFeatureGetCapabilities";
 
 class Test extends OAPIFeatureGetCapabilities {
