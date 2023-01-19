@@ -8,24 +8,23 @@ class Test extends OAPIFeatureGetCapabilities {
         describe('OAPIFeatureGetCapabilities',  () => {
             it('OAPIFeatureGetCapabilities.fromURL success', async () => {
                 return OAPIFeatureGetCapabilities.fromURL("https://demo.pygeoapi.io/master/",{}).then(data=>{
-                    console.log(JSON.stringify(data.featureTypes.length,null,2))
                     expect(data.version).toBe("3.0.2");
                 }, (err)=>{
-                    expect(2).toBe(3);
+                    expect(true).toBe(false);
                 })
             });
             it('OAPIFeatureGetCapabilities.fromURL success', async () => {
                 return OAPIFeatureGetCapabilities.fromURL("https://demo.pygeoapi.io/master/",{}).then(data=>{
-                    console.log(data.featureTypes.length)
+                    expect(data.featureTypes.length).toBe(16);
                 }, (err)=>{
-                    expect(2).toBe(3);
+                    expect(true).toBe(false);
                 })
             });
             it('OAPIFeatureGetCapabilities.fromURL success', async () => {
                 return OAPIFeatureGetCapabilities.fromURL("https://demo.pygeoapi.io/master/",{filterCollectionsByLinkType: CollectionLinkType.Items}).then(data=>{
-                    console.log(data.featureTypes.length)
+                    expect(data.featureTypes.length).toBe(14);
                 }, (err)=>{
-                    expect(2).toBe(3);
+                    expect(true).toBe(false);
                 })
             });
             it('OAPIFeatureGetCapabilities.fromURL 404', async () => {
